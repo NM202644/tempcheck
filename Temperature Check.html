@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Temperature Check</title>
+    <style>
+        :root {
+            --font-family-display: Arial, sans-serif;
+            --font-weight-display: 600;
+            --font-family-content: Arial, sans-serif;
+            --font-weight-content: 400;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-content);
+            font-weight: var(--font-weight-content);
+            overflow-x: hidden;
+        }
+
+        .slide {
+            width: 960px;
+            height: 540px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-shrink: 0;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .col { flex-direction: column; }
+        .center {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .items-center { align-items: center; }
+        .fill-height { flex: 1; display: flex; flex-direction: column; }
+
+        .p-16 { padding: 4rem; }
+        .mb-6 { margin-bottom: 1.5rem; }
+        .mb-8 { margin-bottom: 2rem; }
+        .mt-8 { margin-top: 2rem; }
+        .gap-md { gap: 1rem; }
+
+        h1, h2, h3 {
+            font-family: var(--font-family-display);
+            font-weight: var(--font-weight-display);
+            line-height: 1.2;
+            margin: 0;
+        }
+
+        h2 { font-size: 2.25rem; }
+        h3 { font-size: 1.75rem; }
+
+        .text-lg { font-size: 1.125rem; }
+        .text-md { font-size: 1rem; }
+        .text-sm { font-size: 0.875rem; }
+
+        .temperature-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-end;
+            gap: 0.75rem;
+            margin: 2rem 0;
+        }
+
+        .temperature-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .temperature-item:hover {
+            transform: scale(1.1);
+        }
+
+        .temp-bar {
+            width: 60px;
+            border-radius: 4px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            font-size: 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .temp-1 { height: 80px; background-color: #3b82f6; }
+        .temp-2 { height: 120px; background-color: #60a5fa; }
+        .temp-3 { height: 160px; background-color: #94a3b8; }
+        .temp-4 { height: 200px; background-color: #fbbf24; }
+        .temp-5 { height: 240px; background-color: #ef4444; }
+
+        .temp-label {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            text-align: center;
+        }
+
+        .temp-emoji {
+            font-size: 1.5rem;
+        }
+
+        .instructions {
+            font-size: 1rem;
+            color: #cbd5e1;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+
+        .temperature-item.selected .temp-bar {
+            box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
+            transform: scale(1.15);
+        }
+
+        .results-container {
+            display: none;
+            margin-top: 2rem;
+            text-align: center;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .results-container.show {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .result-stat {
+            display: inline-block;
+            margin: 0 1rem;
+            padding: 0.5rem 1rem;
+            background-color: #1e293b;
+            border-radius: 4px;
+            color: #f1f5f9;
+        }
+
+        .result-stat span {
+            font-weight: 600;
+            color: #38bdf8;
+        }
+
+        .reset-btn {
+            margin-top: 1.5rem;
+            padding: 0.5rem 1.5rem;
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            border-radius: 4px;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .reset-btn:hover {
+            background-color: #60a5fa;
+        }
+    </style>
+</head>
+<body class="theme-dark" style="background-color: #0f172a;">
+
+    <section class="slide p-16 col center fill-height" style="background-color: #0f172a; color: #f1f5f9;">
+        <h2 class="mb-8" style="color: #38bdf8;">Temperature Check</h2>
+        
+        <p class="text-lg mb-8" style="color: #cbd5e1;">How is the team feeling overall?</p>
+
+        <div class="temperature-container" id="tempContainer">
+            <div class="temperature-item" data-temp="1">
+                <div class="temp-bar temp-1">
+                    <span class="temp-emoji">❄️</span>
+                </div>
+                <div class="temp-label">Cold</div>
+                <div class="text-sm" style="color: #94a3b8;">Unhappy</div>
+            </div>
+
+            <div class="temperature-item" data-temp="2">
+                <div class="temp-bar temp-2">
+                    <span class="temp-emoji">🧊</span>
+                </div>
+                <div class="temp-label">Cool</div>
+                <div class="text-sm" style="color: #94a3b8;">Concerned</div>
+            </div>
+
+            <div class="temperature-item" data-temp="3">
+                <div class="temp-bar temp-3">
+                    <span class="temp-emoji">😐</span>
+                </div>
+                <div class="temp-label">Neutral</div>
+                <div class="text-sm" style="color: #94a3b8;">OK</div>
+            </div>
+
+            <div class="temperature-item" data-temp="4">
+                <div class="temp-bar temp-4">
+                    <span class="temp-emoji">🌤️</span>
+                </div>
+                <div class="temp-label">Warm</div>
+                <div class="text-sm" style="color: #94a3b8;">Good</div>
+            </div>
+
+            <div class="temperature-item" data-temp="5">
+                <div class="temp-bar temp-5">
+                    <span class="temp-emoji">🔥</span>
+                </div>
+                <div class="temp-label">Hot</div>
+                <div class="text-sm" style="color: #94a3b8;">Excellent</div>
+            </div>
+        </div>
+
+        <div class="results-container" id="results">
+            <p class="text-lg mb-6" style="color: #38bdf8;">Team Feedback Recorded</p>
+            <div id="statsContainer"></div>
+            <button class="reset-btn" onclick="resetVotes()">Clear & Start Over</button>
+        </div>
+
+        <p class="instructions" style="color: #94a3b8;">Click on a temperature to vote</p>
+    </section>
+
+    <script>
+        const votes = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+        const labels = { 1: 'Cold', 2: 'Cool', 3: 'Neutral', 4: 'Warm', 5: 'Hot' };
+
+        document.querySelectorAll('.temperature-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const temp = this.getAttribute('data-temp');
+                votes[temp]++;
+                
+                // Highlight selected item
+                document.querySelectorAll('.temperature-item').forEach(i => i.classList.remove('selected'));
+                this.classList.add('selected');
+
+                // Show results
+                showResults();
+            });
+        });
+
+        function showResults() {
+            const resultsDiv = document.getElementById('results');
+            const statsContainer = document.getElementById('statsContainer');
+            const total = Object.values(votes).reduce((a, b) => a + b, 0);
+
+            let statsHTML = '';
+            for (let i = 1; i <= 5; i++) {
+                const count = votes[i];
+                const percentage = total > 0 ? ((count / total) * 100).toFixed(0) : 0;
+                statsHTML += `<div class="result-stat">${labels[i]}: <span>${count}</span> (${percentage}%)</div>`;
+            }
+
+            statsContainer.innerHTML = statsHTML;
+            resultsDiv.classList.add('show');
+        }
+
+        function resetVotes() {
+            votes[1] = 0;
+            votes[2] = 0;
+            votes[3] = 0;
+            votes[4] = 0;
+            votes[5] = 0;
+            
+            document.querySelectorAll('.temperature-item').forEach(i => i.classList.remove('selected'));
+            document.getElementById('results').classList.remove('show');
+        }
+    </script>
+
+</body>
+</html>

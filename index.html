@@ -42,11 +42,6 @@
       transform: translateY(-4px);
       box-shadow: 0 6px 12px rgba(0,0,0,0.1);
     }
-    .option.selected {
-      background-color: #e3f2fd;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-      transform: translateY(-2px);
-    }
     .label {
       font-size: 0.85rem;
       margin-top: 6px;
@@ -106,4 +101,135 @@
   <h1>How are you feeling?</h1>
 
   <div class="options">
-    <div class="option" data-value="crisis" onc
+    <div class="option" data-value="crisis" onclick="vote(this)">
+      🚨<br><span class="label">Crisis</span>
+    </div>
+    <div class="option" data-value="highly-stressed" onclick="vote(this)">
+      😰<br><span class="label">Highly Stressed</span>
+    </div>
+    <div class="option" data-value="concerned" onclick="vote(this)">
+      😟<br><span class="label">Concerned</span>
+    </div>
+    <div class="option" data-value="neutral" onclick="vote(this)">
+      😐<br><span class="label">Neutral</span>
+    </div>
+    <div class="option" data-value="very-good" onclick="vote(this)">
+      😊<br><span class="label">Very good</span>
+    </div>
+    <div class="option" data-value="thriving" onclick="vote(this)">
+      🌟<br><span class="label">Thriving</span>
+    </div>
+  </div>
+
+  <div class="result" id="result">
+    Click an option above to record your temperature check.
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <button class="reset-btn" onclick="resetVotes()">
+    Reset all votes
+  </button>
+
+  <script>
+    const keys = ["crisis", "highly-stressed", "concerned", "neutral", "very-good", "thriving"];
+    const labels = {
+      "crisis": "🚨 Crisis",
+      "highly-stressed": "😰 Highly Stressed",
+      "concerned": "😟 Concerned",
+      "neutral": "😐 Neutral",
+      "very-good": "😊 Very good",
+      "thriving": "🌟 Thriving"
+    };
+
+    const STORAGE_KEY = "temperatureVotes";
+
+    function loadVotes() {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        try {
+          return JSON.parse(stored);
+        } catch (e) {
+          console.error("Failed to parse votes from localStorage", e);
+        }
+      }
+      const fresh = {};
+      keys.forEach(k => fresh[k] = 0);
+      return fresh;
+    }
+
+    function saveVotes(votes) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(votes));
+    }
+
+    function getTotal(votes) {
+      return keys.reduce((sum, k) => sum + votes[k], 0);
+    }
+
+    function updateStats() {
+      const votes = loadVotes();
+      const total = getTotal(votes);
+      const statsEl = document.getElementById("stats");
+      statsEl.innerHTML = "";
+
+      if (total === 0) {
+        statsEl.innerHTML = "<p>No votes yet.</p>";
+        return;
+      }
+
+      keys.forEach(k => {
+        const count = votes[k];
+        const pct = total > 0 ? (count / total * 100).toFixed(1) : 0;
+        const barWidth = pct + "%";
+
+        const row = document.createElement("div");
+        row.className = "stat-row";
+        row.innerHTML = `
+          <span>${labels[k]}</span>
+          <span>${count} (${pct}%)</span>
+        `;
+        statsEl.appendChild(row);
+
+        const barCont = document.createElement("div");
+        barCont.className = "bar-container";
+        const bar = document.createElement("div");
+        bar.className = "bar";
+        bar.style.width = barWidth;
+        barCont.appendChild(bar);
+        statsEl.appendChild(barCont);
+      });
+    }
+
+    function vote(el) {
+      const value = el.getAttribute("data-value");
+      if (!value) {
+        console.error("No data-value on clicked element", el);
+        return;
+      }
+
+      const votes = loadVotes();
+      votes[value] = (votes[value] || 0) + 1;
+      saveVotes(votes);
+
+      console.log("Vote recorded:", value, votes);
+
+      document.getElementById("result").innerHTML =
+        `You voted: <strong>${labels[value]}</strong>`;
+      updateStats();
+    }
+
+    function resetVotes() {
+      if (confirm("Are you sure you want to reset all votes?")) {
+        localStorage.removeItem(STORAGE_KEY);
+        console.log("Votes cleared from localStorage");
+        document.getElementById("result").innerHTML =
+          "All votes have been reset. You can vote again.";
+        updateStats();
+      }
+    }
+
+    // Init on page load
+    updateStats();
+  </script>
+</body>
+</html>

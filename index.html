@@ -132,104 +132,79 @@
   </button>
 
   <script>
-    const keys = ["crisis", "highly-stressed", "concerned", "neutral", "very-good", "thriving"];
-    const labels = {
-      "crisis": "🚨 Crisis",
-      "highly-stressed": "😰 Highly Stressed",
-      "concerned": "😟 Concerned",
-      "neutral": "😐 Neutral",
-      "very-good": "😊 Very good",
-      "thriving": "🌟 Thriving"
-    };
+  const API_URL = "https://tempcheck-api.vercel.app";
+  const keys = ["crisis", "highly-stressed", "concerned", "neutral", "very-good", "thriving"];
+  const labels = {
+    "crisis": "🚨 Crisis",
+    "highly-stressed": "😰 Highly Stressed",
+    "concerned": "😟 Concerned",
+    "neutral": "😐 Neutral",
+    "very-good": "😊 Very good",
+    "thriving": "🌟 Thriving"
+  };
 
-    const STORAGE_KEY = "temperatureVotes";
+  async function loadVotes() {
+    try {
+      const res = await fetch(`${API_URL}/results`);
+      return await res.json();
+    } catch(e) {
+      console.error("API error:", e);
+      return {};
+    }
+  }
 
-    function loadVotes() {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        try {
-          return JSON.parse(stored);
-        } catch (e) {
-          console.error("Failed to parse votes from localStorage", e);
-        }
-      }
-      const fresh = {};
-      keys.forEach(k => fresh[k] = 0);
-      return fresh;
+  async function saveVote(value) {
+    await fetch(`${API_URL}/vote?value=${value}`, {method: "POST"});
+  }
+
+  async function updateStats() {
+    const votes = await loadVotes();
+    const total = keys.reduce((sum, k) => sum + (votes[k] || 0), 0);
+    const statsEl = document.getElementById("stats");
+    statsEl.innerHTML = "";
+
+    if (total === 0) {
+      statsEl.innerHTML = "<p>No votes yet.</p>";
+      return;
     }
 
-    function saveVotes(votes) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(votes));
-    }
+    keys.forEach(k => {
+      const count = votes[k] || 0;
+      const pct = total > 0 ? (count / total * 100).toFixed(1) : 0;
+      const barWidth = pct + "%";
 
-    function getTotal(votes) {
-      return keys.reduce((sum, k) => sum + votes[k], 0);
-    }
+      const row = document.createElement("div");
+      row.className = "stat-row";
+      row.innerHTML = `<span>${labels[k]}</span><span>${count} (${pct}%)</span>`;
+      statsEl.appendChild(row);
 
-    function updateStats() {
-      const votes = loadVotes();
-      const total = getTotal(votes);
-      const statsEl = document.getElementById("stats");
-      statsEl.innerHTML = "";
+      const barCont = document.createElement("div");
+      barCont.className = "bar-container";
+      const bar = document.createElement("div");
+      bar.className = "bar";
+      bar.style.width = barWidth;
+      barCont.appendChild(bar);
+      statsEl.appendChild(barCont);
+    });
+  }
 
-      if (total === 0) {
-        statsEl.innerHTML = "<p>No votes yet.</p>";
-        return;
-      }
+  window.vote = async function(el) {
+    const value = el.getAttribute("data-value");
+    await saveVote(value);
+    document.getElementById("result").innerHTML = `You voted: <strong>${labels[value]}</strong>`;
+    updateStats();
+  };
 
-      keys.forEach(k => {
-        const count = votes[k];
-        const pct = total > 0 ? (count / total * 100).toFixed(1) : 0;
-        const barWidth = pct + "%";
-
-        const row = document.createElement("div");
-        row.className = "stat-row";
-        row.innerHTML = `
-          <span>${labels[k]}</span>
-          <span>${count} (${pct}%)</span>
-        `;
-        statsEl.appendChild(row);
-
-        const barCont = document.createElement("div");
-        barCont.className = "bar-container";
-        const bar = document.createElement("div");
-        bar.className = "bar";
-        bar.style.width = barWidth;
-        barCont.appendChild(bar);
-        statsEl.appendChild(barCont);
-      });
-    }
-
-    function vote(el) {
-      const value = el.getAttribute("data-value");
-      if (!value) {
-        console.error("No data-value on clicked element", el);
-        return;
-      }
-
-      const votes = loadVotes();
-      votes[value] = (votes[value] || 0) + 1;
-      saveVotes(votes);
-
-      console.log("Vote recorded:", value, votes);
-
-      document.getElementById("result").innerHTML =
-        `You voted: <strong>${labels[value]}</strong>`;
+  window.resetVotes = async function() {
+    if (confirm("Reset all votes?")) {
+      await fetch(`${API_URL}/reset`, {method: "POST"});
+      document.getElementById("result").innerHTML = "All votes reset.";
       updateStats();
     }
+  };
 
-    function resetVotes() {
-      if (confirm("Are you sure you want to reset all votes?")) {
-        localStorage.removeItem(STORAGE_KEY);
-        console.log("Votes cleared from localStorage");
-        document.getElementById("result").innerHTML =
-          "All votes have been reset. You can vote again.";
-        updateStats();
-      }
-    }
-
-    // Init on page load
-    updateStats();
-  </script>
+  updateStats();
+  setInterval(updateStats, 2000);
+</script>
 </body>
 </html>

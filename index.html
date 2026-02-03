@@ -195,7 +195,6 @@
     await saveVote(value);
     document.getElementById("result").innerHTML = `You voted: <strong>${labels[value]}</strong>`;
     updateStats();
-     }
   };
 
   window.resetVotes = async function() {

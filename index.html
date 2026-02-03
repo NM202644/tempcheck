@@ -160,12 +160,46 @@
   });
   }
 
+let lastVotes = null;  // Cache for instant
+
 async function updateStats() {
   try {
     const res = await fetch(`${API_URL}/results`);
-    const votes = await res.json();
-    // ... your EXACT existing updateStats body (keep identical) ...
-  } catch(e) {}
+    lastVotes = await res.json();
+    renderStats(lastVotes);
+  } catch(e) {
+    if (lastVotes) renderStats(lastVotes);  // Use cached during lag
+  }
+}
+
+function renderStats(votes) {
+  const total = keys.reduce((sum, k) => sum + (votes[k] || 0), 0);
+  const statsEl = document.getElementById("stats");
+  statsEl.innerHTML = "";
+
+  if (total === 0) {
+    statsEl.innerHTML = "<p>No votes yet.</p>";
+    return;
+  }
+
+  keys.forEach(k => {
+    const count = votes[k] || 0;
+    const pct = total > 0 ? (count / total * 100).toFixed(1) : 0;
+    const barWidth = pct + "%";
+
+    const row = document.createElement("div");
+    row.className = "stat-row";
+    row.innerHTML = `<span>${labels[k]}</span><span>${count} (${pct}%)</span>`;
+    statsEl.appendChild(row);
+
+    const barCont = document.createElement("div");
+    barCont.className = "bar-container";
+    const bar = document.createElement("div");
+    bar.className = "bar";
+    bar.style.width = barWidth;
+    barCont.appendChild(bar);
+    statsEl.appendChild(barCont);
+  });
 }
 
 window.vote = async function(el) {
@@ -173,21 +207,26 @@ window.vote = async function(el) {
   await saveVote(value);
   document.getElementById("result").innerHTML = `You voted: <strong>${labels[value]}</strong>`;
   
-  // INSTANT bar - optimistic + force
-  setTimeout(updateStats, 100);  // 0.1s
-  setTimeout(updateStats, 2000); // Backup
+  // Instant optimistic bar
+  if (lastVotes) {
+    lastVotes[value] = (lastVotes[value] || 0) + 1;
+    renderStats(lastVotes);
+  }
+  updateStats();  // Background sync
 };
 
 window.resetVotes = async function() {
   if (confirm("Reset all votes?")) {
     await fetch(`${API_URL}/reset`, {method: "POST"});
-    document.getElementById("stats").innerHTML = "<p>No votes yet.</p>";
-    document.getElementById("result").innerHTML = "All votes reset.";
+    document.getElementById("result").innerHTML = "✅ All votes reset.";
+    document.getElementById("stats").innerHTML = "<p>No votes yet.</p>";  // Instant disappear
+    lastVotes = null;
+    setTimeout(updateStats, 1000);  // Confirm server
   }
 };
 
 updateStats();
-setInterval(updateStats, 4000);  // 4s only
+setInterval(updateStats, 4000);  // Gentle poll
 </script>
 </body>
 </html>

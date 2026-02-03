@@ -160,7 +160,8 @@
   });
   }
 
-  async function updateStats() {
+async function updateStats() {
+  try {
     const votes = await loadVotes();
     const total = keys.reduce((sum, k) => sum + (votes[k] || 0), 0);
     const statsEl = document.getElementById("stats");
@@ -189,25 +190,39 @@
       barCont.appendChild(bar);
       statsEl.appendChild(barCont);
     });
+  } catch(e) {
+    console.error("Update lag:", e);
   }
+}
 
-  window.vote = async function(el) {
-    const value = el.getAttribute("data-value");
-    await saveVote(value);
-    document.getElementById("result").innerHTML = `You voted: <strong>${labels[value]}</strong>`;
-    updateStats();
-  };
+window.vote = async function(el) {
+  const value = el.getAttribute("data-value");
+  await saveVote(value);
+  document.getElementById("result").innerHTML = `You voted: <strong>${labels[value]}</strong>`;
+  await updateStats();  // Immediate update
+};
 
-  window.resetVotes = async function() {
-    if (confirm("Reset all votes?")) {
-      await fetch(`${API_URL}/api/reset`, {method: "POST"});
-      document.getElementById("result").innerHTML = "All votes reset.";
-      updateStats();
+window.resetVotes = async function() {
+  if (confirm("Reset all votes?")) {
+    try {
+      await fetch(`${API_URL}/reset`, {method: "POST"});  // Fixed path
+      document.getElementById("result").innerHTML = "✅ All votes reset.";
+      await updateStats();  // Immediate refresh
+    } catch(e) {
+      document.getElementById("result").innerHTML = "Reset failed.";
     }
-  };
+  }
+};
 
-  updateStats();
-  setInterval(updateStats, 2000);
+// Initial + smart polling
+updateStats();
+let pollHandle = setInterval(updateStats, 3000);  // 3s to reduce load
+
+// Resume 2s after activity
+function resetPolling() {
+  clearInterval(pollHandle);
+  pollHandle = setInterval(updateStats, 2000);
+}
 </script>
 </body>
 </html>
